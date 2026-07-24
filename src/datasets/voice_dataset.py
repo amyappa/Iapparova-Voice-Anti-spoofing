@@ -36,6 +36,6 @@ class VoiceDataset(Dataset):
             data_object = self.transform(data_object)
         return {
             "audio_id": audio_id,
-            "data_object": waveform,
+            "data_object": data_object,
             "labels": item["label"],
         }
