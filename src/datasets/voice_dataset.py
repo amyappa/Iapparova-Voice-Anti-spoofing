@@ -6,10 +6,11 @@ from torch.utils.data import Dataset
 
 
 class VoiceDataset(Dataset):
-    def __init__(self, protocol, audio_directory):
+    def __init__(self, protocol, audio_directory, transform=None):
         self.protocol = Path(protocol)
         self.audio_directory = Path(audio_directory)
         self.items = []
+        self.transform = transform
         with self.protocol.open("r") as file:
             for line in file:
                 segments = line.strip().split()
@@ -30,6 +31,10 @@ class VoiceDataset(Dataset):
         audio_path = self.audio_directory / f"{audio_id}.flac"
         waveform, sample_rate = sf.read(audio_path, dtype="float32")
         waveform = torch.from_numpy(waveform)
+        data_object = torch.from_numpy(waveform)
+
+        if self.transform is not None:
+            data_object = self.transform(data_object)
         return {
             "audio_id": audio_id,
             "data_object": waveform,
