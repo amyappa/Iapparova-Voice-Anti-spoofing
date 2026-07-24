@@ -4,7 +4,9 @@ import torchaudio
 
 
 class SpectrogramTransform(torch.nn.Module):
-    def __init__(self, n_fft=512, n_frames=750, random_crop=True):
+    def __init__(
+        self, n_fft=512, n_frames=750, win_length=320, hop_length=160, random_crop=True
+    ):
         super().__init__()
 
         self.n_frames = n_frames
@@ -12,6 +14,8 @@ class SpectrogramTransform(torch.nn.Module):
 
         self.spectrogram = torchaudio.transforms.Spectrogram(
             n_fft=n_fft,
+            win_length=320,
+            hop_length=160,
             window_fn=torch.blackman_window,
             normalized=False,
             center=False,

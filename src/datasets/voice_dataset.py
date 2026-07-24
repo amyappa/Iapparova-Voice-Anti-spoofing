@@ -2,40 +2,45 @@ from pathlib import Path
 
 import soundfile as sf
 import torch
-from torch.utils.data import Dataset
+
+from src.datasets.base_dataset import BaseDataset
 
 
-class VoiceDataset(Dataset):
-    def __init__(self, protocol, audio_directory, transform=None):
-        self.protocol = Path(protocol)
-        self.audio_directory = Path(audio_directory)
-        self.items = []
-        self.transform = transform
-        with self.protocol.open("r") as file:
+class VoiceDataset(BaseDataset):
+    def __init__(
+        self,
+        protocol,
+        audio_directory,
+        *args,
+        **kwargs,
+    ):
+        protocol = Path(protocol)
+        audio_directory = Path(audio_directory)
+        items = []
+
+        with protocol.open("r") as file:
             for line in file:
                 segments = line.strip().split()
 
+                audio_id = segments[1]
                 if segments[4] == "bonafide":
                     label = 0
                 else:
                     label = 1
-                self.items.append({"audio_id": segments[1], "label": label})
 
-    def __len__(self):
-        return len(self.items)
+                audio_path = audio_directory / f"{audio_id}.flac"
 
-    def __getitem__(self, index):
-        item = self.items[index]
+                items.append({"path": str(audio_path), "label": label})
 
-        audio_id = item["audio_id"]
-        audio_path = self.audio_directory / f"{audio_id}.flac"
-        waveform, sample_rate = sf.read(audio_path, dtype="float32")
-        data_object = torch.from_numpy(waveform)
+        super().__init__(
+            index=items,
+            *args,
+            **kwargs,
+        )
 
-        if self.transform is not None:
-            data_object = self.transform(data_object)
-        return {
-            "audio_id": audio_id,
-            "data_object": data_object,
-            "labels": item["label"],
-        }
+    def load_object(self, path):
+        waveform, sample_rate = sf.read(
+            path,
+            dtype="float32",
+        )
+        return torch.from_numpy(waveform)
