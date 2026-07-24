@@ -37,4 +37,4 @@ class SpectrogramTransform(torch.nn.Module):
 
             spectrogram = spectrogram[:, start_frame : start_frame + self.n_frames]
 
-        return spectrogram
+        return spectrogram.unsqueeze(0)
