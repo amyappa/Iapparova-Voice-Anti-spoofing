@@ -30,7 +30,6 @@ class VoiceDataset(Dataset):
         audio_id = item["audio_id"]
         audio_path = self.audio_directory / f"{audio_id}.flac"
         waveform, sample_rate = sf.read(audio_path, dtype="float32")
-        waveform = torch.from_numpy(waveform)
         data_object = torch.from_numpy(waveform)
 
         if self.transform is not None:
