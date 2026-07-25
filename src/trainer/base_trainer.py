@@ -6,6 +6,7 @@ from torch.nn.utils import clip_grad_norm_
 from tqdm.auto import tqdm
 
 from src.datasets.data_utils import inf_loop
+from src.metrics.example import compute_eer
 from src.metrics.tracker import MetricTracker
 from src.utils.io_utils import ROOT_PATH
 
@@ -251,18 +252,16 @@ class BaseTrainer:
 
     def _evaluation_epoch(self, epoch, part, dataloader):
         """
-        Evaluate model on the partition after training for an epoch.
-
-        Args:
-            epoch (int): current training epoch.
-            part (str): partition to evaluate on
-            dataloader (DataLoader): dataloader for the partition.
-        Returns:
-            logs (dict): logs that contain the information about evaluation.
+        Evaluate the model on the whole validation partition
+        and calculate EER using all samples together.
         """
         self.is_train = False
         self.model.eval()
         self.evaluation_metrics.reset()
+
+        all_scores = []
+        all_labels = []
+
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
@@ -273,13 +272,51 @@ class BaseTrainer:
                     batch,
                     metrics=self.evaluation_metrics,
                 )
-            self.writer.set_step(epoch * self.epoch_len, part)
-            self._log_scalars(self.evaluation_metrics)
-            self._log_batch(
-                batch_idx, batch, part
-            )  # log only the last batch during inference
 
-        return self.evaluation_metrics.result()
+                # High score means stronger support for bonafide.
+                bonafide_scores = torch.softmax(
+                    batch["logits"],
+                    dim=1,
+                )[:, 0]
+
+                all_scores.append(bonafide_scores.detach().cpu())
+                all_labels.append(batch["labels"].detach().cpu())
+
+        scores = torch.cat(all_scores).numpy()
+        labels = torch.cat(all_labels).numpy()
+
+        bonafide_scores = scores[labels == 0]
+        spoof_scores = scores[labels == 1]
+
+        eer, _ = compute_eer(
+            bonafide_scores=bonafide_scores,
+            spoof_scores=spoof_scores,
+        )
+
+        eer_percent = float(eer * 100)
+
+        self.writer.set_step(
+            epoch * self.epoch_len,
+            part,
+        )
+        self._log_scalars(self.evaluation_metrics)
+
+        if self.writer is not None:
+            self.writer.add_scalar(
+                "EER",
+                eer_percent,
+            )
+
+        self._log_batch(
+            batch_idx,
+            batch,
+            part,
+        )
+
+        logs = self.evaluation_metrics.result()
+        logs["EER"] = eer_percent
+
+        return logs
 
     def _monitor_performance(self, logs, not_improved_count):
         """
