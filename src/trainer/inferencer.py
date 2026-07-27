@@ -1,6 +1,7 @@
 import torch
 from tqdm.auto import tqdm
 
+from src.metrics.example import compute_eer
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 
@@ -154,23 +155,21 @@ class Inferencer(BaseTrainer):
 
     def _inference_part(self, part, dataloader):
         """
-        Run inference on a given partition and save predictions
-
-        Args:
-            part (str): name of the partition.
-            dataloader (DataLoader): dataloader for the given partition.
-        Returns:
-            logs (dict): metrics, calculated on the partition.
+        Run inference on a given partition and calculate EER.
         """
-
         self.is_train = False
         self.model.eval()
 
         self.evaluation_metrics.reset()
 
-        # create Save dir
+        all_scores = []
+        all_labels = []
+
         if self.save_path is not None:
-            (self.save_path / part).mkdir(exist_ok=True, parents=True)
+            (self.save_path / part).mkdir(
+                exist_ok=True,
+                parents=True,
+            )
 
         with torch.no_grad():
             for batch_idx, batch in tqdm(
@@ -185,4 +184,21 @@ class Inferencer(BaseTrainer):
                     metrics=self.evaluation_metrics,
                 )
 
-        return self.evaluation_metrics.result()
+                all_scores.append(
+                    torch.softmax(batch["logits"], dim=1)[:, 0].detach().cpu()
+                )
+
+                all_labels.append(batch["labels"].detach().cpu())
+
+        scores = torch.cat(all_scores).numpy()
+        labels = torch.cat(all_labels).numpy()
+
+        eer, _ = compute_eer(
+            bonafide_scores=scores[labels == 0],
+            spoof_scores=scores[labels == 1],
+        )
+
+        logs = self.evaluation_metrics.result()
+        logs["EER"] = float(eer * 100)
+
+        return logs
