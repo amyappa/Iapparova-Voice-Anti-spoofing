@@ -34,27 +34,7 @@ class LCNN(nn.Module):
             out_channels=60,
             kernel_size=1,
         )
-        filter_weights = torch.zeros(60, 257, dtype=torch.float32)
-        points = torch.linspace(0, 256, 62)
 
-        for filter_index in range(60):
-            left = points[filter_index].item()
-            center = points[filter_index + 1].item()
-            right = points[filter_index + 2].item()
-            for frequency_index in range(257):
-                frequency = float(frequency_index)
-
-                if left <= frequency <= center:
-                    value = (frequency - left) / (center - left)
-                elif center < frequency <= right:
-                    value = (right - frequency) / (right - center)
-                else:
-                    value = 0.0
-
-                filter_weights[filter_index, frequency_index] = value
-        with torch.no_grad():
-            self.feature_reduction.weight.copy_(filter_weights.unsqueeze(-1))
-            self.feature_reduction.bias.zero_()
         self.cnn = nn.Sequential(
             nn.Conv2d(
                 in_channels=1,
