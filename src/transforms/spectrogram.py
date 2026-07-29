@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -20,20 +22,16 @@ class SpectrogramTransform(torch.nn.Module):
 
     def forward(self, waveform):
         spectrogram = self.spectrogram(waveform)
-
         frame_count = spectrogram.shape[-1]
+
+        if frame_count > self.n_frames:
+            spectrogram = spectrogram[..., : self.n_frames]
+            frame_count = self.n_frames
+
+        spectrogram = torch.log(spectrogram + 1e-10)
 
         if frame_count < self.n_frames:
             frames_to_add = self.n_frames - frame_count
-            spectrogram = F.pad(
-                spectrogram,
-                (0, frames_to_add),
-                value=0.0,
-            )
-
-        elif frame_count > self.n_frames:
-            spectrogram = spectrogram[..., : self.n_frames]
-
-        spectrogram = torch.log(spectrogram + 1e-10)
+            spectrogram = F.pad(spectrogram, (0, frames_to_add), value=math.log(1e-10))
 
         return spectrogram.unsqueeze(0)
