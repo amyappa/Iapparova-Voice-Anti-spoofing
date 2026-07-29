@@ -8,17 +8,15 @@
 train:
   data_object:
     _target_: src.transforms.spectrogram.SpectrogramTransform
-    n_fft: 512
-    win_length: 320
-    hop_length: 160
-    n_frames: 750
-    random_crop: true
+    n_fft: 1724
+    win_length: 1724
+    hop_length: 130
+    n_frames: 600
 
 inference:
   data_object:
     _target_: src.transforms.spectrogram.SpectrogramTransform
-    n_fft: 512
-    win_length: 320
-    hop_length: 160
-    n_frames: 750
-    random_crop: false
+    n_fft: 1724
+    win_length: 1724
+    hop_length: 130
+    n_frames: 600

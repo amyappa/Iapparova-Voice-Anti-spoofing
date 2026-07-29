@@ -29,12 +29,6 @@ class LCNN(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.feature_reduction = nn.Conv1d(
-            in_channels=257,
-            out_channels=60,
-            kernel_size=1,
-        )
-
         self.cnn = nn.Sequential(
             nn.Conv2d(
                 in_channels=1,
@@ -130,7 +124,7 @@ class LCNN(nn.Module):
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(
-                in_features=32 * 3 * 46,
+                in_features=32 * 53 * 37,
                 out_features=160,
             ),
             MFM(),
@@ -143,10 +137,7 @@ class LCNN(nn.Module):
         )
 
     def forward(self, data_object, **batch):
-        x = data_object.squeeze(1)
-        x = self.feature_reduction(x)
-        x = x.unsqueeze(1)
-        x = self.cnn(x)
+        x = self.cnn(data_object)
         logits = self.classifier(x)
 
         return {"logits": logits}
