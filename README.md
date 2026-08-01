@@ -14,7 +14,13 @@ The work was completed as part of an educational deep learning internship.
 | Evaluation | 8.4051% | 85.54% |
 
 ## Acknowledgements
-This repository is based on a [project template](https://github.com/Blinorot/pytorch_project_template) provided by the course instructor.
+
+This project is based on the [PyTorch Project Template](https://github.com/Blinorot/pytorch_project_template) created by Petr Grinberg and distributed under the MIT License. The template was used as the basis for the repository structure and training pipeline, while the audio preprocessing, FFT-LCNN implementation, experiments, and evaluation were completed as part of this project.
+
+Template citation:
+
+P. Grinberg, *PyTorch Project Template*, 2024.  
+https://github.com/Blinorot/pytorch_project_template
 
 ## References
 
